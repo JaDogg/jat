@@ -61,11 +61,11 @@ public class ChatServer {
     private static class ClientData {
         private String name;
         private boolean active;
-		private final Queue<String> messageQueue;
+        private final Queue<String> messageQueue;
 
-		public ClientData() {
-			messageQueue = new LinkedList<>();
-		} 
+        public ClientData() {
+            messageQueue = new LinkedList<>();
+        }
 
         public void setName(final String name) {
             this.name = name;
@@ -83,14 +83,14 @@ public class ChatServer {
             return active;
         }
 
-		public void add(String message) {
-			messageQueue.add(message);
-		}
+        public void add(String message) {
+            messageQueue.add(message);
+        }
 
-		public String poll() {
-			if (messageQueue.isEmpty()) return null;
-			return messageQueue.poll();
-		}
+        public String poll() {
+            if (messageQueue.isEmpty()) return null;
+            return messageQueue.poll();
+        }
     }
 
     private static class ChatService extends Thread {
@@ -98,7 +98,7 @@ public class ChatServer {
         private final Selector selector;
         private final ByteBuffer buf;
         private final ByteBuffer wbuf;
-		private final Map<String, ClientData> clients;
+        private final Map<String, ClientData> clients;
 
         public ChatService(int port) throws IOException {
             super();
@@ -109,7 +109,7 @@ public class ChatServer {
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
             buf = ByteBuffer.allocate(Message.MAX_SIZE + 1);
             wbuf = ByteBuffer.allocate(Message.MAX_SIZE + 1);
-			clients = new LinkedHashMap<>();
+            clients = new LinkedHashMap<>();
         }
 
         @Override
@@ -118,7 +118,7 @@ public class ChatServer {
                 try {
                     this.select();
                 } catch (IOException ex) {
-					ex.printStackTrace();
+                    ex.printStackTrace();
                 }
             }
         }
@@ -142,11 +142,11 @@ public class ChatServer {
                 if (key.isReadable()) {
                     onMessageReceived(key);
                 }
-				// Client is writable
-				// Now we can get a message from message queue and send it
-				if (key.isWritable()) {
-					sendMessage(key);
-				}
+                // Client is writable
+                // Now we can get a message from message queue and send it
+                if (key.isWritable()) {
+                    sendMessage(key);
+                }
                 keyIterator.remove();
             }
         }
@@ -155,26 +155,26 @@ public class ChatServer {
             final SocketChannel client = serverChannel.accept();
             client.configureBlocking(false);
             client.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
-			System.out.println("Client connected");
+            System.out.println("Client connected");
         }
 
-		private void sendMessage(final SelectionKey key) throws IOException {
-			final ClientData clientData  = (ClientData)key.attachment();
+        private void sendMessage(final SelectionKey key) throws IOException {
+            final ClientData clientData  = (ClientData)key.attachment();
             final SocketChannel channel = (SocketChannel)key.channel();
-			if (clientData == null) return;
-			final String messageStr = clientData.poll();
-			if (messageStr == null) {
-				return;
-			}
-			wbuf.clear();
-			final Message message = new Message(messageStr);
-			message.writeToBuffer(wbuf);
-			wbuf.flip();
-			while (wbuf.hasRemaining()) {
-				channel.write(wbuf);
-			}
-			System.out.printf("-> %s << %s%n", clientData.getName(), messageStr);
-		}
+            if (clientData == null) return;
+            final String messageStr = clientData.poll();
+            if (messageStr == null) {
+                return;
+            }
+            wbuf.clear();
+            final Message message = new Message(messageStr);
+            message.writeToBuffer(wbuf);
+            wbuf.flip();
+            while (wbuf.hasRemaining()) {
+                channel.write(wbuf);
+            }
+            System.out.printf("-> %s << %s%n", clientData.getName(), messageStr);
+        }
 
         private void onMessageReceived(final SelectionKey key) throws IOException {
             ClientData clientData = (ClientData)key.attachment();
@@ -191,32 +191,32 @@ public class ChatServer {
                 if (clientData == null) {
                     // First message is the name
                     // We will set it to clientData
-					clientData = new ClientData();
+                    clientData = new ClientData();
                     clientData.setName(message.getData());
                     clientData.setActive(true);
-					key.attach(clientData);
-					System.out.printf("'%s' Logged in %n", clientData.getName());
-					clients.put(message.getData(), clientData);
+                    key.attach(clientData);
+                    System.out.printf("'%s' Logged in %n", clientData.getName());
+                    clients.put(message.getData(), clientData);
                 } else if (clientData != null && clientData.isActive()) {
                     // Message from this client is received.
-					String receivedMessage = message.getData();
-					String clientName = clientData.getName();
+                    String receivedMessage = message.getData();
+                    String clientName = clientData.getName();
                     System.out.printf(
                         "%s: %s%n",
                         clientName,
-                       	receivedMessage 
+                        receivedMessage
                     );
                     if (message.exitRequested()) {
                         clientData.setActive(false);
-						this.clients.remove(clientData.getName());
-						channel.close();
+                        this.clients.remove(clientData.getName());
+                        channel.close();
                     }
-					for (Map.Entry<String, ClientData> clientEntry: clients.entrySet()) {
-						if (!clientEntry.getKey().equals(clientName)) {
-							clientEntry.getValue().add(clientName + ":" + receivedMessage);
-						}	
-					}
-				}
+                    for (Map.Entry<String, ClientData> clientEntry: clients.entrySet()) {
+                        if (!clientEntry.getKey().equals(clientName)) {
+                            clientEntry.getValue().add(clientName + ":" + receivedMessage);
+                        }
+                    }
+                }
                 buf.clear(); // make buffer ready for writing
             }
         }
