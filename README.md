@@ -1,5 +1,5 @@
 # Jat - Java chat 
-
+* This is just a Toy application!!
 * Uses NIO ServerSocketChannel, SocketChannel & Selectors
 * Both client and server uses selectors
 * Both client and server uses 1 thread for communicating 
